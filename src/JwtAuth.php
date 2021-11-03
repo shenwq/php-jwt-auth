@@ -16,6 +16,7 @@ class JwtAuth
     /**
      * 获取jwt token
      * @param array $payload jwt载荷  格式如下非必须
+     * @param string $key 加密的key值
      * [
      * 'iss'=>'jwt_admin', //该JWT的签发者
      * 'iat'=>time(), //签发时间
@@ -26,12 +27,13 @@ class JwtAuth
      * ]
      * @return bool|string
      */
-    public static function getToken(array $payload)
+    public static function getToken(array $payload, string $key = '')
     {
+        if (empty($key)) $key = self::$key;
         if (is_array($payload)) {
             $base64header = self::base64UrlEncode(json_encode(self::$header, JSON_UNESCAPED_UNICODE));
             $base64payload = self::base64UrlEncode(json_encode($payload, JSON_UNESCAPED_UNICODE));
-            $token = $base64header . '.' . $base64payload . '.' . self::signature($base64header . '.' . $base64payload, self::$key, self::$header['alg']);
+            $token = $base64header . '.' . $base64payload . '.' . self::signature($base64header . '.' . $base64payload, $key, self::$header['alg']);
             return $token;
         } else {
             return false;
@@ -41,10 +43,12 @@ class JwtAuth
     /**
      * 验证token是否有效,默认验证exp,nbf,iat时间
      * @param string $Token 需要验证的token
+     * @param string $key 加密的key值
      * @return bool|string
      */
-    public static function verifyToken(string $Token)
+    public static function verifyToken(string $Token, string $key = '')
     {
+        if (empty($key)) $key = self::$key;
         $tokens = explode('.', $Token);
         if (count($tokens) != 3)
             return false;
@@ -57,7 +61,7 @@ class JwtAuth
             return false;
 
         //签名验证
-        if (self::signature($base64header . '.' . $base64payload, self::$key, $base64decodeheader['alg']) !== $sign)
+        if (self::signature($base64header . '.' . $base64payload, $key, $base64decodeheader['alg']) !== $sign)
             return false;
 
         $payload = json_decode(self::base64UrlDecode($base64payload), JSON_OBJECT_AS_ARRAY);
